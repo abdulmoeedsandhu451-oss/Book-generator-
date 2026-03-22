@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>eBook Studio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:Georgia,serif;background:#181008;color:#ede8dc;min-height:100vh}
+/* HEADER */
+.hdr{background:#0d0a04;border-bottom:1px solid rgba(201,168,76,0.3);padding:14px 16px}
+.logo{font-size:20px;font-weight:bold;color:#c9a84c}.logo i{color:#ede8dc;font-weight:normal}
+/* TABS */
+.tabs{display:flex;background:#201408;border-bottom:2px solid rgba(201,168,76,0.2)}
+.tab{flex:1;padding:13px 0;background:none;border:none;border-bottom:3px solid transparent;color:rgba(237,232,220,0.45);font-size:11px;font-family:monospace;cursor:pointer;text-align:center;transition:all 0.2s}
+.tab.active{color:#c9a84c;border-bottom-color:#c9a84c;background:rgba(201,168,76,0.06)}
+/* PANELS */
+.panel{display:none;padding:16px;flex-direction:column;gap:14px}
+.panel.active{display:flex}
+/* FORM */
+.card{background:#221608;border:1px solid rgba(201,168,76,0.18);border-radius:10px;padding:16px}
+.card-title{font-family:monospace;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;color:#c9a84c;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid rgba(201,168,76,0.18)}
+.field{margin-bottom:12px}
+.field label{display:block;font-family:monospace;font-size:11px;color:rgba(237,232,220,0.5);margin-bottom:5px}
+input[type=text],select,textarea{
+  width:100%;background:rgba(255,255,255,0.07);border:1px solid rgba(201,168,76,0.22);
+  border-radius:7px;color:#ede8dc;font-family:Georgia,serif;font-size:16px;
+  padding:11px 13px;outline:none;-webkit-appearance:none;appearance:none;display:block
+}
+input[type=text]:focus,select:focus,textarea:focus{border-color:#c9a84c;background:rgba(201,168,76,0.06)}
+select{
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7'%3E%3Cpath d='M6 7L0 0h12z' fill='%23c9a84c'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 13px center;
+  background-color:rgba(255,255,255,0.07);padding-right:36px
+}
+select option{background:#2a1f10;color:#ede8dc}
+textarea{resize:vertical;min-height:200px;line-height:1.8}
+/* BUTTONS */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  padding:14px 16px;border-radius:9px;border:none;
+  font-family:monospace;font-size:13px;font-weight:bold;
+  cursor:pointer;width:100%;transition:filter 0.15s;letter-spacing:0.3px
+}
+.btn:active{filter:brightness(0.82)}
+.btn-gold{background:#c9a84c;color:#140e04}
+.btn-green{background:#256033;color:#a8ecc4}
+.btn-outline{background:transparent;border:1px solid rgba(201,168,76,0.35);color:#c9a84c}
+.btn-red{background:transparent;border:1px solid rgba(180,50,30,0.4);color:#e07868}
+.btn-sm{padding:9px 14px;font-size:11px;width:auto}
+/* SWATCHES */
+.swatches{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
+.swatch{width:36px;height:36px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all 0.2s;flex-shrink:0}
+.swatch.active{border-color:#c9a84c;box-shadow:0 0 0 2px rgba(201,168,76,0.4)}
+/* STATS */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:9px}
+.stat{background:#1a1006;border:1px solid rgba(201,168,76,0.18);border-radius:8px;padding:12px;text-align:center}
+.stat-n{display:block;font-family:monospace;font-size:22px;font-weight:bold;color:#c9a84c}
+.stat-l{display:block;font-family:monospace;font-size:9px;color:rgba(237,232,220,0.3);text-transform:uppercase;letter-spacing:1px;margin-top:3px}
+/* CHAPTER LIST */
+.ch-list{display:flex;flex-direction:column;gap:7px}
+.ch-item{display:flex;align-items:center;gap:9px;padding:12px 13px;background:#1c1208;border:1px solid rgba(201,168,76,0.12);border-radius:8px;cursor:pointer;transition:all 0.18s}
+.ch-item.active{background:rgba(201,168,76,0.12);border-color:#c9a84c}
+.ch-num{font-family:monospace;font-size:10px;color:#c9a84c;min-width:22px;flex-shrink:0}
+.ch-name{flex:1;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#ede8dc}
+.ch-del{background:none;border:none;color:rgba(237,232,220,0.22);font-size:22px;cursor:pointer;padding:0 4px;line-height:1;flex-shrink:0}
+/* EDITOR */
+.ch-title-inp{
+  width:100%;background:transparent;border:none;border-bottom:2px solid rgba(201,168,76,0.25);
+  color:#ede8dc;font-family:Georgia,serif;font-size:22px;font-weight:bold;
+  padding:5px 0;outline:none;margin-bottom:13px;display:block
+}
+.ch-title-inp:focus{border-bottom-color:#c9a84c}
+.ch-title-inp::placeholder{color:rgba(237,232,220,0.2)}
+.wc{font-family:monospace;font-size:10px;color:rgba(237,232,220,0.28);text-align:right;margin-top:6px}
+/* EMPTY MSG */
+.empty-msg{text-align:center;padding:40px 16px;color:rgba(237,232,220,0.28);font-style:italic;line-height:2;font-size:14px}
+.empty-icon{font-size:42px;display:block;margin-bottom:10px;opacity:0.4;font-style:normal}
+/* PREVIEW */
+.prev-bar{background:#201408;padding:11px 16px;border-bottom:1px solid rgba(201,168,76,0.18);display:flex;justify-content:space-between;align-items:center}
+.prev-bar span{font-family:monospace;font-size:10px}
+.prev-bar .title{color:#c9a84c;letter-spacing:2px}
+.prev-bar .count{color:rgba(237,232,220,0.35)}
+.prev-pages{padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:14px}
+.page-wrap{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%}
+.page-label{font-family:monospace;font-size:10px;color:rgba(201,168,76,0.5);letter-spacing:1px}
+.page-box{position:relative;border-radius:3px 8px 8px 3px;overflow:hidden;box-shadow:-4px 0 10px rgba(0,0,0,0.55),5px 5px 20px rgba(0,0,0,0.6)}
+.page-dl{position:absolute;bottom:7px;right:7px;background:#c9a84c;color:#140e04;border:none;border-radius:5px;padding:6px 12px;font-family:monospace;font-size:10px;font-weight:bold;cursor:pointer}
+canvas{display:block}
+/* MODAL */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:9999;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}
+.modal-box{background:#221608;border:1px solid rgba(201,168,76,0.35);border-radius:14px;padding:30px 24px;width:100%;max-width:300px;text-align:center}
+.modal-icon{font-size:38px;margin-bottom:8px}
+.modal-title{font-size:16px;color:#c9a84c;font-weight:bold;margin-bottom:5px}
+.modal-sub{font-family:monospace;font-size:10px;color:rgba(237,232,220,0.4);margin-bottom:18px;letter-spacing:1px}
+.prog-bar{background:rgba(255,255,255,0.08);border-radius:20px;height:8px;overflow:hidden;margin-bottom:9px}
+.prog-fill{height:100%;background:#c9a84c;border-radius:20px;transition:width 0.3s;width:0%}
+.prog-txt{font-family:monospace;font-size:11px;color:rgba(237,232,220,0.4)}
+/* TOAST */
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(80px);background:#221608;border:1px solid rgba(201,168,76,0.3);border-radius:9px;padding:11px 22px;font-family:monospace;font-size:12px;color:#c9a84c;z-index:8888;transition:transform 0.3s;white-space:nowrap;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
+/* EXPORT CARD */
+.exp-card{background:#221608;border:1px solid rgba(201,168,76,0.18);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:10px}
+.exp-card p{font-size:13px;color:rgba(237,232,220,0.5);line-height:1.75}
+</style>
+</head>
+<body>
+
+<!-- MODAL -->
+<div class="modal" id="modal">
+  <div class="modal-box">
+    <div class="modal-icon">📖</div>
+    <div class="modal-title" id="mTitle">Processing...</div>
+    <div class="modal-sub" id="mSub">PLEASE WAIT</div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill"></div></div>
+    <div class="prog-txt" id="progTxt">0 / 0</div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo">eBook <i>Studio</i></div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" id="tabBook"    onclick="switchTab('book')">📖 BOOK</button>
+  <button class="tab"        id="tabWrite"   onclick="switchTab('write')">✏️ WRITE</button>
+  <button class="tab"        id="tabPreview" onclick="switchTab('preview')">👁 PREVIEW</button>
+  <button class="tab"        id="tabExport"  onclick="switchTab('export')">⬇ EXPORT</button>
+</div>
+
+<!-- ===== BOOK TAB ===== -->
+<div class="panel active" id="panelBook">
+
+  <div class="card">
+    <div class="card-title">📖 Book Info</div>
+    <div class="field">
+      <label>Book Title</label>
+      <input type="text" id="fTitle" placeholder="My Amazing Book">
+    </div>
+    <div class="field">
+      <label>Author Name</label>
+      <input type="text" id="fAuthor" placeholder="Your Name">
+    </div>
+    <div class="field">
+      <label>Subtitle (optional)</label>
+      <input type="text" id="fSub" placeholder="A journey of words...">
+    </div>
+    <div class="field">
+      <label>Genre</label>
+      <select id="fGenre">
+        <option>Fiction</option>
+        <option>Non-Fiction</option>
+        <option>Poetry</option>
+        <option>Biography</option>
+        <option>Self-Help</option>
+        <option>Mystery</option>
+        <option>Romance</option>
+        <option>Science Fiction</option>
+        <option>Fantasy</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎨 Cover Theme</div>
+    <div class="swatches">
+      <div class="swatch active" onclick="pickTheme('dark',this)"   style="background:linear-gradient(135deg,#2a1a0a,#3d2410)"></div>
+      <div class="swatch"        onclick="pickTheme('navy',this)"   style="background:linear-gradient(135deg,#0a1628,#1a3050)"></div>
+      <div class="swatch"        onclick="pickTheme('forest',this)" style="background:linear-gradient(135deg,#0d2016,#1a4028)"></div>
+      <div class="swatch"        onclick="pickTheme('wine',this)"   style="background:linear-gradient(135deg,#1e0810,#3d1020)"></div>
+      <div class="swatch"        onclick="pickTheme('slate',this)"  style="background:linear-gradient(135deg,#1a1e28,#2d3348)"></div>
+      <div class="swatch"        onclick="pickTheme('gold',this)"   style="background:linear-gradient(135deg,#2a1e06,#4a3410)"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Stats</div>
+    <div class="stats">
+      <div class="stat"><span class="stat-n" id="stPages">0</span><span class="stat-l">Pages</span></div>
+      <div class="stat"><span class="stat-n" id="stChaps">0</span><span class="stat-l">Chapters</span></div>
+      <div class="stat"><span class="stat-n" id="stWords">0</span><span class="stat-l">Words</span></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== WRITE TAB ===== -->
+<div class="panel" id="panelWrite">
+
+  <div class="card">
+    <div class="card-title">📑 Chapters</div>
+    <div class="ch-list" id="chList">
+      <div class="empty-msg"><span class="empty-icon">📑</span>No chapters yet</div>
+    </div>
+    <div style="margin-top:12px">
+      <button class="btn btn-outline" onclick="addChapter()">＋ Add New Chapter</button>
+    </div>
+  </div>
+
+  <div class="card" id="editorCard" style="display:none">
+    <div class="card-title">✏️ Editing: <span id="edChNum">Ch.1</span></div>
+    <input type="text" class="ch-title-inp" id="edTitle" placeholder="Chapter Title..." oninput="saveCurrentChapter()">
+    <textarea id="edContent" placeholder="Start writing here...&#10;&#10;Every great story begins with a single word." oninput="saveCurrentChapter()"></textarea>
+    <div class="wc" id="wc">0 words</div>
+    <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-red btn-sm" onclick="deleteCurrentChapter()">🗑 Delete Chapter</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== PREVIEW TAB ===== -->
+<div class="panel" id="panelPreview" style="padding:0;gap:0">
+  <div class="prev-bar">
+    <span class="title">PREVIEW</span>
+    <span class="count" id="pvCount">0 pages</span>
+  </div>
+  <div class="prev-pages" id="pvPages">
+    <div class="empty-msg"><span class="empty-icon">👁</span>Add chapters then tap PREVIEW tab to see your book pages here</div>
+  </div>
+</div>
+
+<!-- ===== EXPORT TAB ===== -->
+<div class="panel" id="panelExport">
+
+  <div class="exp-card">
+    <div class="card-title">🖼 Download Pages as PNG</div>
+    <p>Each page saves as 1214×2000 PNG with page number on top. Files go directly to your Downloads folder.</p>
+    <button class="btn btn-gold" onclick="doDownloadAllPNG()">🖼 Download All Pages (PNG)</button>
+  </div>
+
+  <div class="exp-card">
+    <div class="card-title">📄 Download Full Book as PDF</div>
+    <p>All pages in one PDF file. Saves directly to your Downloads folder.</p>
+    <button class="btn btn-green" onclick="doDownloadPDF()">📄 Download Full Book (PDF)</button>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📊 Stats</div>
+    <div class="stats">
+      <div class="stat"><span class="stat-n" id="stPages2">0</span><span class="stat-l">Pages</span></div>
+      <div class="stat"><span class="stat-n" id="stChaps2">0</span><span class="stat-l">Chapters</span></div>
+      <div class="stat"><span class="stat-n" id="stWords2">0</span><span class="stat-l">Words</span></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────
+//  CONSTANTS
+// ─────────────────────────────────────────
+var PW = 1214, PH = 2000, WPP = 190;
+
+var THEMES = {
+  dark:   {a:'#2a1a0a',b:'#3d2410',c:'#221508',ac:'#c9a84c'},
+  navy:   {a:'#0a1628',b:'#1a3050',c:'#0a1830',ac:'#7eb8d4'},
+  forest: {a:'#0d2016',b:'#1a4028',c:'#0d2218',ac:'#7ec99a'},
+  wine:   {a:'#1e0810',b:'#3d1020',c:'#200c14',ac:'#d4a0b0'},
+  slate:  {a:'#1a1e28',b:'#2d3348',c:'#1c2030',ac:'#a0b4d4'},
+  gold:   {a:'#2a1e06',b:'#4a3410',c:'#221808',ac:'#e8c96a'}
+};
+
+// ─────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────
+var chapters = [];
+var curIdx   = null;
+var theme    = 'dark';
+
+// ─────────────────────────────────────────
+//  TABS
+// ─────────────────────────────────────────
+var TAB_IDS = ['book','write','preview','export'];
+
+function switchTab(name) {
+  TAB_IDS.forEach(function(id) {
+    var tab   = document.getElementById('tab' + cap(id));
+    var panel = document.getElementById('panel' + cap(id));
+    if (id === name) {
+      tab.classList.add('active');
+      panel.classList.add('active');
+    } else {
+      tab.classList.remove('active');
+      panel.classList.remove('active');
+    }
+  });
+  if (name === 'preview') renderPreview();
+  if (name === 'export')  updateStats();
+}
+
+function cap(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+
+// ─────────────────────────────────────────
+//  CHAPTERS
+// ─────────────────────────────────────────
+function addChapter() {
+  var ch = { title: 'Chapter ' + (chapters.length + 1), content: '' };
+  chapters.push(ch);
+  curIdx = chapters.length - 1;
+  renderChapterList();
+  openEditor(curIdx);
+  updateStats();
+  // auto switch to write tab
+  switchTab('write');
+}
+
+function selectChapter(i) {
+  curIdx = i;
+  renderChapterList();
+  openEditor(i);
+}
+
+function openEditor(i) {
+  if (i === null || i < 0 || i >= chapters.length) return;
+  document.getElementById('editorCard').style.display = 'block';
+  document.getElementById('edChNum').textContent = 'Ch.' + (i + 1);
+  document.getElementById('edTitle').value   = chapters[i].title;
+  document.getElementById('edContent').value = chapters[i].content;
+  updateWC();
+}
+
+function saveCurrentChapter() {
+  if (curIdx === null || curIdx >= chapters.length) return;
+  chapters[curIdx].title   = document.getElementById('edTitle').value;
+  chapters[curIdx].content = document.getElementById('edContent').value;
+  renderChapterList();
+  updateWC();
+  updateStats();
+}
+
+function deleteCurrentChapter() {
+  if (curIdx === null) return;
+  var nm = chapters[curIdx].title || 'this chapter';
+  if (!confirm('Delete "' + nm + '"?')) return;
+  chapters.splice(curIdx, 1);
+  if (!chapters.length) {
+    curIdx = null;
+    document.getElementById('editorCard').style.display = 'none';
+  } else {
+    curIdx = Math.min(curIdx, chapters.length - 1);
+    openEditor(curIdx);
+  }
+  renderChapterList();
+  updateStats();
+}
+
+function deleteChapter(i, evt) {
+  evt.stopPropagation();
+  var nm = chapters[i] ? (chapters[i].title || 'this chapter') : 'chapter';
+  if (!confirm('Delete "' + nm + '"?')) return;
+  chapters.splice(i, 1);
+  if (!chapters.length) {
+    curIdx = null;
+    document.getElementById('editorCard').style.display = 'none';
+  } else {
+    curIdx = Math.min(i, chapters.length - 1);
+    openEditor(curIdx);
+  }
+  renderChapterList();
+  updateStats();
+}
+
+function renderChapterList() {
+  var el = document.getElementById('chList');
+  if (!chapters.length) {
+    el.innerHTML = '<div class="empty-msg"><span class="empty-icon" style="font-size:28px">📑</span>No chapters yet</div>';
+    return;
+  }
+  var html = '';
+  for (var i = 0; i < chapters.length; i++) {
+    html += '<div class="ch-item' + (i === curIdx ? ' active' : '') + '" onclick="selectChapter(' + i + ')">'
+      + '<span class="ch-num">' + pad2(i + 1) + '</span>'
+      + '<span class="ch-name">' + escHtml(chapters[i].title || 'Untitled') + '</span>'
+      + '<button class="ch-del" onclick="deleteChapter(' + i + ',event)">×</button>'
+      + '</div>';
+  }
+  el.innerHTML = html;
+}
+
+function updateWC() {
+  var txt = document.getElementById('edContent').value || '';
+  var w   = txt.trim() ? txt.trim().split(/\s+/).length : 0;
+  document.getElementById('wc').textContent = w.toLocaleString() + ' words';
+}
+
+// ─────────────────────────────────────────
+//  THEME
+// ─────────────────────────────────────────
+function pickTheme(name, el) {
+  theme = name;
+  document.querySelectorAll('.swatch').forEach(function(s) { s.classList.remove('active'); });
+  el.classList.add('active');
+}
+
+// ─────────────────────────────────────────
+//  BUILD PAGE LIST
+// ─────────────────────────────────────────
+function buildPages() {
+  var title  = (document.getElementById('fTitle').value  || 'Untitled Book').trim();
+  var author = (document.getElementById('fAuthor').value || 'Unknown Author').trim();
+  var sub    = (document.getElementById('fSub').value    || '').trim();
+  var genre  = (document.getElementById('fGenre').value  || '').trim();
+  var pages  = [];
+
+  pages.push({ type:'cover', title:title, author:author, sub:sub, genre:genre });
+  if (chapters.length) pages.push({ type:'toc', chs: chapters.slice() });
+
+  for (var ci = 0; ci < chapters.length; ci++) {
+    var words = ((chapters[ci].content || '').trim()).split(/\s+/).filter(Boolean);
+    if (!words.length) {
+      pages.push({ type:'chapter', ch:chapters[ci], idx:ci, part:1, text:'', tot:1 });
+    } else {
+      var tot = Math.ceil(words.length / WPP);
+      for (var p = 0; p < tot; p++) {
+        pages.push({ type:'chapter', ch:chapters[ci], idx:ci, part:p+1, text:words.slice(p*WPP,(p+1)*WPP).join(' '), tot:tot });
+      }
+    }
+  }
+  return pages;
+}
+
+// ─────────────────────────────────────────
+//  DRAW PAGE → Canvas
+// ─────────────────────────────────────────
+function drawPage(pg, pageNum) {
+  var cv  = document.createElement('canvas');
+  cv.width = PW; cv.height = PH;
+  var ctx = cv.getContext('2d');
+  var T   = THEMES[theme];
+
+  /* util: wrap text, return line count */
+  function wrapText(text, x, y, maxW, lh, maxL) {
+    var words = String(text).split(' ');
+    var line  = '', lines = [], i;
+    for (i = 0; i < words.length; i++) {
+      var test = line ? line + ' ' + words[i] : words[i];
+      if (ctx.measureText(test).width > maxW && line) {
+        lines.push(line);
+        if (maxL && lines.length >= maxL) { lines[lines.length-1] += '…'; break; }
+        line = words[i];
+      } else { line = test; }
+    }
+    if (line && (!maxL || lines.length < maxL)) lines.push(line);
+    for (i = 0; i < lines.length; i++) ctx.fillText(lines[i], x, y + i * lh);
+    return lines.length;
